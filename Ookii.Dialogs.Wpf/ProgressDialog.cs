@@ -30,16 +30,19 @@ namespace Ookii.Dialogs.Wpf
         {
             public string Text { get; set; }
             public string Description { get; set; }
+            public string Expanded { get; set; }
             public object UserState { get; set; }
         }
 
         private string _windowTitle;
         private string _text;
         private string _description;
+        private string _expanded;
         private Interop.IProgressDialog _dialog;
         private string _cancellationText;
         private bool _useCompactPathsForText;
         private bool _useCompactPathsForDescription;
+        private bool _useCompactPathsForExpanded;
         private SafeModuleHandle _currentAnimationModuleHandle;
         private bool _cancellationPending;
 
@@ -219,6 +222,63 @@ namespace Ookii.Dialogs.Wpf
                 _useCompactPathsForDescription = value;
                 if( _dialog != null )
                     _dialog.SetLine(2, Description, UseCompactPathsForDescription, IntPtr.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets expanded details about the operation being carried out.
+        /// </summary>
+        /// <value>
+        /// Expanded details about the operation being carried out. The default value is an empty string.
+        /// </value>
+        /// <remarks>
+        /// This text is used to provide expanded details beyond the <see cref="Text"/> property.
+        /// </remarks>
+        /// <remarks>
+        /// <para>
+        ///   This property can be changed while the dialog is running, but may only be changed from the thread which
+        ///   created the progress dialog. The recommended method to change this value while the dialog is running
+        ///   is to use the <see cref="ReportProgress(int,string,string,string)"/> method.
+        /// </para>
+        /// </remarks>
+        [Localizable(true), Category("Appearance"), Description("Expanded details about the operation being carried out."), DefaultValue("")]
+        public string Expanded
+        {
+            get { return _expanded ?? string.Empty; }
+            set
+            {
+                _expanded = value;
+                if (_dialog != null)
+                    _dialog.SetLine(3, Expanded, UseCompactPathsForExpanded, IntPtr.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value that indicates whether path strings in the <see cref="Expanded"/> property should be compacted if
+        /// they are too large to fit on one line.
+        /// </summary>
+        /// <value>
+        /// <see langword="true"/> to compact path strings if they are too large to fit on one line; otherwise,
+        /// <see langword="false"/>. The default value is <see langword="false"/>.
+        /// </value>
+        /// <remarks>
+        /// <note>
+        ///   This property requires Windows Vista or later. On older versions of Windows, it has no effect.
+        /// </note>
+        /// <para>
+        ///   This property can be changed while the dialog is running, but may only be changed from the thread which
+        ///   created the progress dialog.
+        /// </para>
+        /// </remarks>
+        [Category("Behavior"), Description("Indicates whether path strings in the Expanded property should be compacted if they are too large to fit on one line."), DefaultValue(false)]
+        public bool UseCompactPathsForExpanded
+        {
+            get { return _useCompactPathsForExpanded; }
+            set
+            {
+                _useCompactPathsForExpanded = value;
+                if (_dialog != null)
+                    _dialog.SetLine(3, Expanded, UseCompactPathsForExpanded, IntPtr.Zero);
             }
         }
 
@@ -535,7 +595,7 @@ namespace Ookii.Dialogs.Wpf
         /// <exception cref="InvalidOperationException">The progress dialog is not currently being displayed.</exception>
         public void ReportProgress(int percentProgress)
         {
-            ReportProgress(percentProgress, null, null, null);
+            ReportProgress(percentProgress, null, null, null, null);
         }
 
         /// <summary>
@@ -544,12 +604,13 @@ namespace Ookii.Dialogs.Wpf
         /// <param name="percentProgress">The percentage, from 0 to 100, of the operation that is complete.</param>
         /// <param name="text">The new value of the progress dialog's primary text message, or <see langword="null"/> to leave the value unchanged.</param>
         /// <param name="description">The new value of the progress dialog's additional description message, or <see langword="null"/> to leave the value unchanged.</param>
+        /// <param name="expanded">The new value of the progress dialog's expanded description message, or <see langword="null"/> to leave the value unchanged.</param>
         /// <remarks>Call this method from the <see cref="DoWork"/> event handler if you want to report progress.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="percentProgress"/> is out of range.</exception>
         /// <exception cref="InvalidOperationException">The progress dialog is not currently being displayed.</exception>
-        public void ReportProgress(int percentProgress, string text, string description)
+        public void ReportProgress(int percentProgress, string text, string description, string expanded)
         {
-            ReportProgress(percentProgress, text, description, null);
+            ReportProgress(percentProgress, text, description, expanded, null);
         }
 
         /// <summary>
@@ -558,17 +619,18 @@ namespace Ookii.Dialogs.Wpf
         /// <param name="percentProgress">The percentage, from 0 to 100, of the operation that is complete.</param>
         /// <param name="text">The new value of the progress dialog's primary text message, or <see langword="null"/> to leave the value unchanged.</param>
         /// <param name="description">The new value of the progress dialog's additional description message, or <see langword="null"/> to leave the value unchanged.</param>
+        /// <param name="expanded">The new value of the progress dialog's expanded description message, or <see langword="null"/> to leave the value unchanged.</param>
         /// <param name="userState">A state object that will be passed to the <see cref="ProgressChanged"/> event handler.</param>
         /// <remarks>Call this method from the <see cref="DoWork"/> event handler if you want to report progress.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="percentProgress"/> is out of range.</exception>
         /// <exception cref="InvalidOperationException">The progress dialog is not currently being displayed.</exception>
-        public void ReportProgress(int percentProgress, string text, string description, object userState)
+        public void ReportProgress(int percentProgress, string text, string description, string expanded, object userState)
         {
             if( percentProgress < 0 || percentProgress > 100 )
                 throw new ArgumentOutOfRangeException("percentProgress");
             if( _dialog == null )
                 throw new InvalidOperationException(Properties.Resources.ProgressDialogNotRunningError);
-            _backgroundWorker.ReportProgress(percentProgress, new ProgressChangedData() { Text = text, Description = description, UserState = userState });
+            _backgroundWorker.ReportProgress(percentProgress, new ProgressChangedData() { Text = text, Description = description, Expanded = expanded, UserState = userState });
         }
 
         /// <summary>
@@ -635,6 +697,7 @@ namespace Ookii.Dialogs.Wpf
                 _dialog.SetCancelMsg(CancellationText, null);
             _dialog.SetLine(1, Text, UseCompactPathsForText, IntPtr.Zero);
             _dialog.SetLine(2, Description, UseCompactPathsForDescription, IntPtr.Zero);
+            _dialog.SetLine(3, Expanded, UseCompactPathsForExpanded, IntPtr.Zero);
 
             Interop.ProgressDialogFlags flags = Ookii.Dialogs.Wpf.Interop.ProgressDialogFlags.Normal;
             if( owner != IntPtr.Zero )
@@ -696,6 +759,8 @@ namespace Ookii.Dialogs.Wpf
                         Text = data.Text;
                     if( data.Description != null )
                         Description = data.Description;
+                    if (data.Expanded != null)
+                        Expanded = data.Expanded;
                     OnProgressChanged(new ProgressChangedEventArgs(e.ProgressPercentage, data.UserState));
                 }
             }
