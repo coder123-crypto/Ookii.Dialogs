@@ -26,6 +26,7 @@ namespace Ookii.Dialogs.Wpf.Sample
                 WindowTitle = "Progress dialog sample",
                 Text = "This is a sample progress dialog...",
                 Description = "Processing...",
+                Expanded = "This is expanded text",
                 ShowTimeRemaining = true,
             };
 

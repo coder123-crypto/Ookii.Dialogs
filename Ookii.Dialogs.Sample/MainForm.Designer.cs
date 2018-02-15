@@ -149,6 +149,7 @@
             this._sampleProgressDialog.ShowTimeRemaining = true;
             this._sampleProgressDialog.Text = "This is a sample progress dialog...";
             this._sampleProgressDialog.WindowTitle = "Progress dialog sample";
+            this._sampleProgressDialog.Expanded = "This is expanded text";
             this._sampleProgressDialog.DoWork += new System.ComponentModel.DoWorkEventHandler(this._sampleProgressDialog_DoWork);
             // 
             // _sampleInputDialog
